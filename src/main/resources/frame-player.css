@@ -1,0 +1,19 @@
+.frame-player {
+    -fx-min-height: 154;
+}
+
+.frame-preview {
+    -fx-spacing: 15;
+    -fx-alignment: center;
+    -fx-border-color: black;
+    -fx-border-width: 2;
+}
+
+.frame-preview-image {
+
+}
+
+.selected-frame .label {
+    -fx-text-fill: orange;
+    -fx-font-weight: bold;
+}
