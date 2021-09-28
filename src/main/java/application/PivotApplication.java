@@ -12,7 +12,7 @@ import javafx.stage.Stage;
 
 public class PivotApplication extends Application {
 
-    public static final double DEFAULT_SIZE = 40;
+    public static final double DEFAULT_SIZE = 15;
 
     @Override
     public void start(Stage primaryStage) {

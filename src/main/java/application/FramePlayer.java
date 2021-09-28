@@ -3,6 +3,7 @@ package application;
 import com.me.tmw.nodes.util.NodeMisc;
 import javafx.beans.InvalidationListener;
 import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.control.Label;
@@ -68,6 +69,14 @@ public class FramePlayer extends HBox {
                     }
                 }
             }
+            ObservableList<FrameView> appFrames = app.getFrames();
+            for (int i = 0, appFramesSize = appFrames.size(); i < appFramesSize; i++) {
+                FrameView frame = appFrames.get(i);
+                FramePreview preview = framePreviewMap.get(frame);
+                if (preview != null) {
+                    preview.index.setText(String.valueOf(i + 1));
+                }
+            }
         });
         app.currentFrameProperty().addListener((obs, oldV, newV) -> {
             if (newV != null) framePreviewMap.get(newV).getStyleClass().add("selected-frame");
@@ -100,6 +109,7 @@ public class FramePlayer extends HBox {
 
             preview.setSmooth(true);
             preview.setPreserveRatio(true);
+            if (frame.lastImageProperty().get() == null) frame.takeSnapshot();
             preview.imageProperty().bind(frame.lastImageProperty());
 
             index.setText(String.valueOf(app.getFrames().indexOf(frame)));
