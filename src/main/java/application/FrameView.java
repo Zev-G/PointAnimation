@@ -31,6 +31,8 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
     private Node intersected;
     private Connection dragConnection;
     private boolean dragging = false;
+    private double lastX;
+    private double lastY;
 
     public FrameView() {
         this(new Shape());
@@ -67,22 +69,62 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
                 } else if (intersected instanceof LineConnection) {
                     ((LineConnection) intersected).getConnection().remove();
                 }
+            } else if (event.getButton() == MouseButton.PRIMARY) {
+                intersected = event.getPickResult().getIntersectedNode();
+                if (intersected instanceof PointConnection) {
+                    PointConnection pointConnection = (PointConnection) intersected;
+                    dragConnection = pointConnection.getConnection();
+                    dragging = true;
+                    lastX = event.getX();
+                    lastY = event.getY();
+                } else if (intersected == this) {
+                    intersected = null;
+                    dragging = true;
+                    lastX = event.getX();
+                    lastY = event.getY();
+                }
             }
         });
         setOnMouseDragged(event -> {
             if (dragging) {
-                imaginaryPoint.setX(event.getX());
-                imaginaryPoint.setY(event.getY());
-
-                Node intersectedTemp = event.getPickResult().getIntersectedNode();
-                if (intersectedTemp != null && intersectedTemp.getParent() instanceof Point && intersectedTemp != intersected) {
-                    if (dragConnection.getEnd() != intersectedTemp.getParent()) {
-                        dragConnection.remove();
-                        dragConnection = Point.connect(dragConnection.getStart(), (Point) intersectedTemp.getParent(), SimpleLineType.BASIC);
+                if (intersected == null) {
+                    double x = event.getX();
+                    double y = event.getY();
+                    double deltaX = x - lastX;
+                    double deltaY = y - lastY;
+                    for (Point point : shape.getPoints()) {
+                        point.setX(point.getX() + deltaX);
+                        point.setY(point.getY() + deltaY);
                     }
-                } else if (dragConnection != null && dragConnection.getEnd() != imaginaryPoint) {
-                    dragConnection.remove();
-                    dragConnection = Point.connect(dragConnection.getStart(), imaginaryPoint, SimpleLineType.BASIC);
+                    lastX = x;
+                    lastY = y;
+                } else if (intersected instanceof PointConnection) {
+                    Point start = dragConnection.getStart();
+                    Point end = dragConnection.getEnd();
+                    double x = event.getX();
+                    double y = event.getY();
+                    double deltaX = x - lastX;
+                    double deltaY = y - lastY;
+                    start.setX(start.getX() + deltaX);
+                    start.setY(start.getY() + deltaY);
+                    end.setX(end.getX() + deltaX);
+                    end.setY(end.getY() + deltaY);
+                    lastX = x;
+                    lastY = y;
+                } else {
+                    imaginaryPoint.setX(event.getX());
+                    imaginaryPoint.setY(event.getY());
+
+                    Node intersectedTemp = event.getPickResult().getIntersectedNode();
+                    if (intersectedTemp != null && intersectedTemp.getParent() instanceof Point && intersectedTemp != intersected) {
+                        if (dragConnection.getEnd() != intersectedTemp.getParent()) {
+                            dragConnection.remove();
+                            dragConnection = Point.connect(dragConnection.getStart(), (Point) intersectedTemp.getParent(), SimpleLineType.BASIC);
+                        }
+                    } else if (dragConnection != null && dragConnection.getEnd() != imaginaryPoint) {
+                        dragConnection.remove();
+                        dragConnection = Point.connect(dragConnection.getStart(), imaginaryPoint, SimpleLineType.BASIC);
+                    }
                 }
             }
         });

@@ -1,19 +1,58 @@
 .frame-player {
-    -fx-min-height: 154;
+    -fx-border-color: #2b2b2b;
+    -fx-border-width: 0 0 2 0;
+    -fx-padding: 1;
+    -fx-pref-height: 130;
 }
 
 .frame-preview {
     -fx-spacing: 15;
     -fx-alignment: center;
-    -fx-border-color: black;
-    -fx-border-width: 2;
 }
 
-.frame-preview-image {
-
+.frame-preview-image-holder {
+    -fx-border-color: black;
+    -fx-border-width: 1.5;
+}
+.frame-preview:selected > .frame-preview-image-holder {
+    -fx-border-color: red;
 }
 
 .selected-frame .label {
     -fx-text-fill: orange;
     -fx-font-weight: bold;
+}
+
+.frames {
+    -fx-padding: 5;
+    -fx-spacing: 10;
+}
+
+
+
+
+
+
+
+
+
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: -1;
+}
+
+.scroll-bar:horizontal .track,
+.scroll-bar:vertical .track {
+    -fx-background-radius: 0em;
+}
+
+.scroll-pane:focused,
+.split-pane:focused,
+.list-view:focused,
+.tree-view:focused,
+.table-view:focused,
+.tree-table-view:focused {
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
 }

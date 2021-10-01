@@ -1,19 +1,17 @@
 package application;
 
-import com.me.tmw.nodes.util.NodeMisc;
 import javafx.beans.InvalidationListener;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.css.PseudoClass;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,6 +20,7 @@ import java.util.Map;
 
 public class FramePlayer extends HBox {
 
+    private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
     private static final String STYLE_SHEET = Res.css("frame-player");
 
     private final AppView app;
@@ -36,11 +35,21 @@ public class FramePlayer extends HBox {
         this.app = app;
         this.playback = new Playback(app);
         getStyleClass().add("frame-player");
+        frames.getStyleClass().add("frames");
         getStylesheets().add(STYLE_SHEET);
-        getChildren().addAll(playback, new Separator(), frameScroller);
+        getChildren().addAll(playback, new Separator(Orientation.VERTICAL), frameScroller);
 
         frameScroller.setFitToHeight(true);
         frameScroller.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+
+        app.currentFrameProperty().addListener((observableValue, frameView, t1) -> {
+            if (framePreviewMap.containsKey(t1)) {
+                framePreviewMap.get(t1).pseudoClassStateChanged(SELECTED, true);
+            }
+            if (framePreviewMap.containsKey(frameView)) {
+                framePreviewMap.get(frameView).pseudoClassStateChanged(SELECTED, false);
+            }
+        });
 
         app.getFrames().addListener((ListChangeListener<FrameView>) c -> {
             while (c.next()) {
@@ -88,12 +97,14 @@ public class FramePlayer extends HBox {
     private class FramePreview extends BorderPane {
 
         private final ImageView preview = new ImageView();
+        private final StackPane imageHolder = new StackPane(preview);
         private final Label index = new Label();
 
         public FramePreview(FrameView frame) {
-            setCenter(preview);
+            setCenter(imageHolder);
             setBottom(NodeMisc.center(index));
             getStyleClass().add("frame-preview");
+            imageHolder.getStyleClass().add("frame-preview-image-holder");
             preview.getStyleClass().add("frame-preview-image");
             index.setAlignment(Pos.CENTER);
 
@@ -104,8 +115,8 @@ public class FramePlayer extends HBox {
             setMaxSize(150, 100);
             setMinSize(150, 100);
 
-            preview.setFitWidth(150 * 0.5);
-            preview.setFitHeight(100 * 0.5);
+            preview.setFitWidth(150);
+            preview.setFitHeight(100);
 
             preview.setSmooth(true);
             preview.setPreserveRatio(true);

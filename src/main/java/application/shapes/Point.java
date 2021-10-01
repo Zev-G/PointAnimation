@@ -1,7 +1,6 @@
 package application.shapes;
 
 import application.PivotApplication;
-import com.me.tmw.properties.NodeProperty;
 import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -16,7 +15,7 @@ import java.util.stream.Collectors;
 public class Point extends Parent {
 
     private final ObjectProperty<Shape> shape = new SimpleObjectProperty<>();
-    private final NodeProperty visual = new NodeProperty() {
+    private final ObjectProperty<Node> visual = new SimpleObjectProperty<>() {
         @Override
         protected void invalidated() {
             Point.this.getChildren().setAll(visual.get());
@@ -86,7 +85,7 @@ public class Point extends Parent {
         return visual.get();
     }
 
-    public NodeProperty visualProperty() {
+    public ObjectProperty<Node> visualProperty() {
         return visual;
     }
 

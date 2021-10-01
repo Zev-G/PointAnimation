@@ -1,7 +1,5 @@
 package application;
 
-import com.me.tmw.nodes.util.Layout;
-import com.me.tmw.nodes.util.NodeMisc;
 import javafx.beans.property.ObjectProperty;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
