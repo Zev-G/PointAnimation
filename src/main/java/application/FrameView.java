@@ -49,8 +49,8 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
                     new ArrayList<>(point.getConnectionsFrom()).forEach(Connection::remove);
                     new ArrayList<>(point.getConnectionsTo()).forEach(Connection::remove);
                     shape.getPoints().remove(point);
-                } else if (intersected instanceof LineConnection) {
-                    ((LineConnection) intersected).getConnection().remove();
+                } else if (intersected instanceof CurveToConnection) {
+                    ((CurveToConnection) intersected).getConnection().remove();
                 }
                 takeSnapshot();
             } else if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2 && !event.isShiftDown()) {
@@ -66,8 +66,8 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
                 if (intersected != null && intersected.getParent() instanceof Point) {
                     Point intersectedPoint = (Point) intersected.getParent();
                     dragConnection = Point.connect(intersectedPoint, imaginaryPoint, SimpleLineType.BASIC);
-                } else if (intersected instanceof LineConnection) {
-                    ((LineConnection) intersected).getConnection().remove();
+                } else if (intersected instanceof CurveToConnection) {
+                    ((CurveToConnection) intersected).getConnection().remove();
                 }
             } else if (event.getButton() == MouseButton.PRIMARY) {
                 intersected = event.getPickResult().getIntersectedNode();

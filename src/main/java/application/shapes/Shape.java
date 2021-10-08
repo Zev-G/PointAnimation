@@ -7,8 +7,7 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import util.FXLists;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Shape extends Parent {
@@ -18,6 +17,7 @@ public class Shape extends Parent {
     private final ObservableList<Connection> connections = FXLists.reduce(connectionLists);
 
     private final Map<Connection, Node> connectionNodeMap = new HashMap<>();
+    private final Map<Connection, Point> additionalConnections = new HashMap<>();
 
     public Shape() {
 
@@ -42,12 +42,34 @@ public class Shape extends Parent {
         });
         connections.addListener((ListChangeListener<Connection>) c -> {
             while (c.next()) {
-                getChildren().addAll(0, c.getAddedSubList().stream()
-                        .map(connection -> connectionNodeMap.computeIfAbsent(connection, connection1 -> connection1.createNode().node()))
-                        .collect(Collectors.toList()));
-                getChildren().removeAll(c.getRemoved().stream()
-                        .map(connectionNodeMap::get)
-                        .collect(Collectors.toList()));
+
+                if (c.wasAdded()) {
+                    for (Connection connection : c.getAddedSubList()) {
+                        if (connectionNodeMap.containsKey(connection) && connectionNodeMap.get(connection) != null) getChildren().add(connectionNodeMap.get(connection));
+                        else {
+                            PointConnection createdConnection = connection.getConnector().createNode(connection);
+                            Node createdNode = createdConnection.node();
+                            connectionNodeMap.put(connection, createdNode);
+                            if (createdConnection instanceof CurveToConnection) {
+                                Point curveControl = new Point();
+                                CurveToConnection curveToConnection = (CurveToConnection) createdConnection;
+                                curveToConnection.controlXRelativeProperty().unbind();
+                                curveToConnection.controlYRelativeProperty().unbind();
+                                curveToConnection.controlXRelativeProperty().bind(curveControl.xProperty());
+                                curveToConnection.controlYRelativeProperty().bind(curveControl.yProperty());
+                                getPoints().add(curveControl);
+                            }
+                            if (!getChildren().contains(createdNode)) {
+                                getChildren().add(createdNode);
+                            }
+                        }
+                    }
+                }
+                if (c.wasRemoved()) {
+                    for (Connection connection : c.getRemoved()) {
+                        if (connectionNodeMap.containsKey(connection)) getChildren().remove(connectionNodeMap.get(connection));
+                    }
+                }
             }
         });
     }

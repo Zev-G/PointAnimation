@@ -54,6 +54,7 @@ public class FramePlayer extends HBox {
         app.getFrames().addListener((ListChangeListener<FrameView>) c -> {
             while (c.next()) {
                 if (c.wasPermutated()) {
+
                     int from = c.getFrom();
                     int to = c.getTo();
                     for (int i = to; i < from; i++) {
