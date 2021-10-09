@@ -1,6 +1,8 @@
 package application.shapes;
 
+import javafx.scene.shape.CubicCurve;
 import javafx.scene.shape.Line;
+import javafx.scene.shape.QuadCurve;
 
 import java.util.function.Consumer;
 
@@ -8,7 +10,7 @@ public class SimpleLineType implements LineType {
 
     public static final SimpleLineType BASIC = new SimpleLineType();
 
-    private final Consumer<Line> lineEditor = line -> {};
+    private final Consumer<LineConnection> lineEditor = line -> {};
 
     @Override
     public String getName() {
@@ -16,7 +18,7 @@ public class SimpleLineType implements LineType {
     }
 
     @Override
-    public LineConnection createNode(Connection connection) {
+    public PointConnection createNode(Connection connection) {
         LineConnection line = new LineConnection(connection);
         lineEditor.accept(line);
         return line;
