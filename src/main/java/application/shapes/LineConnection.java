@@ -1,12 +1,22 @@
 package application.shapes;
 
 import application.PivotApplication;
+import application.Selectable;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.Node;
 import javafx.scene.shape.Line;
 
-public class LineConnection extends Line implements PointConnection {
+public class LineConnection extends Line implements PointConnection, Selectable {
+
+    private final BooleanProperty selected = new SimpleBooleanProperty() {
+        @Override
+        protected void invalidated() {
+            pseudoClassStateChanged(SELECTED, selected.get());
+        }
+    };
 
     private final ObjectProperty<Connection> connection = new SimpleObjectProperty<>() {
         @Override
@@ -36,6 +46,8 @@ public class LineConnection extends Line implements PointConnection {
     public LineConnection(Connection connection) {
         setConnection(connection);
         setStrokeWidth(PivotApplication.DEFAULT_SIZE * 0.75);
+        setFocusTraversable(true);
+        setOnMousePressed(event -> requestFocus());
     }
 
     @Override
@@ -59,6 +71,16 @@ public class LineConnection extends Line implements PointConnection {
 
     public void setConnection(Connection connection) {
         this.connection.set(connection);
+    }
+
+    @Override
+    public void setSelected(boolean selected) {
+        this.selected.set(selected);
+    }
+
+    @Override
+    public boolean isSelected() {
+        return selected.get();
     }
 
 }

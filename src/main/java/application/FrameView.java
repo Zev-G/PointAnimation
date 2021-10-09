@@ -1,13 +1,19 @@
 package application;
 
 import application.shapes.*;
+import javafx.beans.binding.Bindings;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.image.Image;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
@@ -19,6 +25,7 @@ import json.PointJSON;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class FrameView extends Pane implements JSONSavable<FrameJSON> {
 
@@ -34,13 +41,57 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
     private double lastX;
     private double lastY;
 
-    public FrameView() {
-        this(new Shape());
+    private final ObservableList<Selectable> selected = FXCollections.observableArrayList();
+    private final AppView app;
+
+    public FrameView(AppView app) {
+        this(app, new Shape());
     }
-    public FrameView(Shape shape) {
+    public FrameView(AppView app, Shape shape) {
         this.shape = shape;
+        this.app = app;
         getChildren().add(shape);
 
+        selected.addListener((ListChangeListener<? super Selectable>) change -> {
+            while (change.next()) {
+                if (change.wasRemoved()) {
+                    for (Selectable removed : change.getRemoved()) {
+                        removed.setSelected(false);
+                    }
+                }
+                if (change.wasAdded()) {
+                    for (Selectable removed : change.getAddedSubList()) {
+                        removed.setSelected(true);
+                    }
+                }
+            }
+        });
+
+        Consumer<Node> visibilityHandler = added -> {
+            if (!(added instanceof PointConnection)) {
+                added.visibleProperty().bind(Bindings.createBooleanBinding(() -> {
+                    int val = app.showingAllProperty().get();
+                    if (val == 0) {
+                        return true;
+                    } else if (val == 1 && !(added instanceof Point)) {
+                        return false;
+                    } else if (val == 2) {
+                        return false;
+                    }
+                    return true;
+                }, app.showingAllProperty()));
+            }
+        };
+        shape.getChildrenUnmodifiable().forEach(visibilityHandler);
+        shape.getChildrenUnmodifiable().addListener((ListChangeListener<? super Node>) c -> {
+            while (c.next()) {
+                if (c.wasAdded()) {
+                    c.getAddedSubList().forEach(visibilityHandler);
+                }
+            }
+        });
+
+        setFocusTraversable(true);
         setOnMousePressed(event -> {
             if (event.getButton() == MouseButton.MIDDLE) {
                 intersected = event.getPickResult().getIntersectedNode();
@@ -49,8 +100,8 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
                     new ArrayList<>(point.getConnectionsFrom()).forEach(Connection::remove);
                     new ArrayList<>(point.getConnectionsTo()).forEach(Connection::remove);
                     shape.getPoints().remove(point);
-                } else if (intersected instanceof LineConnection) {
-                    ((LineConnection) intersected).getConnection().remove();
+                } else if (intersected instanceof CurveToConnection) {
+                    ((CurveToConnection) intersected).getConnection().remove();
                 }
                 takeSnapshot();
             } else if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2 && !event.isShiftDown()) {
@@ -65,9 +116,9 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
                 intersected = event.getPickResult().getIntersectedNode();
                 if (intersected != null && intersected.getParent() instanceof Point) {
                     Point intersectedPoint = (Point) intersected.getParent();
-                    dragConnection = Point.connect(intersectedPoint, imaginaryPoint, SimpleLineType.BASIC);
-                } else if (intersected instanceof LineConnection) {
-                    ((LineConnection) intersected).getConnection().remove();
+                    dragConnection = Point.connect(intersectedPoint, imaginaryPoint, CurvedLineType.BASIC);
+                } else if (intersected instanceof CurveToConnection) {
+                    ((CurveToConnection) intersected).getConnection().remove();
                 }
             } else if (event.getButton() == MouseButton.PRIMARY) {
                 intersected = event.getPickResult().getIntersectedNode();
@@ -119,20 +170,27 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
                     if (intersectedTemp != null && intersectedTemp.getParent() instanceof Point && intersectedTemp != intersected) {
                         if (dragConnection.getEnd() != intersectedTemp.getParent()) {
                             dragConnection.remove();
-                            dragConnection = Point.connect(dragConnection.getStart(), (Point) intersectedTemp.getParent(), SimpleLineType.BASIC);
+                            dragConnection = Point.connect(dragConnection.getStart(), (Point) intersectedTemp.getParent(), CurvedLineType.BASIC);
                         }
                     } else if (dragConnection != null && dragConnection.getEnd() != imaginaryPoint) {
                         dragConnection.remove();
-                        dragConnection = Point.connect(dragConnection.getStart(), imaginaryPoint, SimpleLineType.BASIC);
+                        dragConnection = Point.connect(dragConnection.getStart(), imaginaryPoint, CurvedLineType.BASIC);
                     }
                 }
             }
         });
         setOnMouseReleased(event -> {
+            if (!dragging) {
+                Node node = event.getPickResult().getIntersectedNode();
+                if (node instanceof Selectable) {
+                    selected.setAll((Selectable) node);
+                }
+            }
             dragging = false;
             if (dragConnection != null && dragConnection.getEnd() == imaginaryPoint) {
                 dragConnection.remove();
             }
+            dragConnection = null;
             takeSnapshot();
         });
     }
@@ -145,7 +203,7 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
     }
 
     public FrameView duplicate() {
-        FrameView frameView = new FrameView(shape.duplicate());
+        FrameView frameView = new FrameView(app, shape.duplicate());
         frameView.lastImage.set(lastImage.get());
         return frameView;
     }
@@ -154,8 +212,8 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
         return lastImage;
     }
 
-    public static FrameView fromJSON(FrameJSON json) {
-        FrameView view = new FrameView();
+    public static FrameView fromJSON(FrameJSON json, AppView app) {
+        FrameView view = new FrameView(app);
         view.apply(json);
         return view;
     }
@@ -172,7 +230,7 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
             points[i].setY(jsonPoint.y);
         }
         for (ConnectionJSON connection : json.connections) {
-            Point.connect(points[connection.a], points[connection.b], SimpleLineType.BASIC);
+            Point.connect(points[connection.a], points[connection.b], CurvedLineType.BASIC);
         }
         shape.getPoints().addAll(points);
     }

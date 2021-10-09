@@ -1,8 +1,7 @@
 package application;
 
 import com.google.gson.Gson;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
@@ -41,6 +40,7 @@ public class AppView extends VBox implements JSONSavable<AnimationJSON> {
     private final FrameEditor frameEditor = new FrameEditor(this);
 
     private final ObjectProperty<Path> connectedFile = new SimpleObjectProperty<>(null);
+    private final IntegerProperty showingAll = new SimpleIntegerProperty(0);
 
     public AppView(Scene scene) {
         getChildren().addAll(menuBar, header, frameEditor);
@@ -53,6 +53,10 @@ public class AppView extends VBox implements JSONSavable<AnimationJSON> {
                 getCurrentFrame().takeSnapshot();
                 FrameView newFrame = duplicateFrame();
                 frames.add(frames.size() - 1, newFrame);
+            }
+            if (event.getCode().equals(KeyCode.V)) {
+                showingAllProperty().set((showingAllProperty().get() + 1) % 3);
+                frames.forEach(FrameView::takeSnapshot);
             }
         });
 
@@ -139,7 +143,7 @@ public class AppView extends VBox implements JSONSavable<AnimationJSON> {
     }
 
     public FrameView addFrame() {
-        FrameView newFrame = new FrameView();
+        FrameView newFrame = new FrameView(this);
         addFrame(newFrame);
         return newFrame;
     }
@@ -155,7 +159,7 @@ public class AppView extends VBox implements JSONSavable<AnimationJSON> {
 
     @Override
     public void apply(AnimationJSON json) {
-        frames.setAll(Arrays.stream(json.frames).map(FrameView::fromJSON).collect(Collectors.toList()));
+        frames.setAll(Arrays.stream(json.frames).map(frame -> FrameView.fromJSON(frame, this)).collect(Collectors.toList()));
         if (!frames.isEmpty()) {
             currentFrame.set(frames.get(frames.size() - 1));
         } else {
@@ -168,6 +172,10 @@ public class AppView extends VBox implements JSONSavable<AnimationJSON> {
         AnimationJSON json = new AnimationJSON();
         json.frames = frames.stream().map(FrameView::toJSON).toArray(FrameJSON[]::new);
         return json;
+    }
+
+    public IntegerProperty showingAllProperty() {
+        return showingAll;
     }
 
 }

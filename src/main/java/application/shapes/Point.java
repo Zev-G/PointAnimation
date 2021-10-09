@@ -1,6 +1,7 @@
 package application.shapes;
 
 import application.PivotApplication;
+import application.Selectable;
 import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -10,9 +11,14 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 
-import java.util.stream.Collectors;
+public class Point extends Parent implements Selectable {
 
-public class Point extends Parent {
+    private final BooleanProperty selected = new SimpleBooleanProperty() {
+        @Override
+        protected void invalidated() {
+            pseudoClassStateChanged(SELECTED, selected.get());
+        }
+    };
 
     private final ObjectProperty<Shape> shape = new SimpleObjectProperty<>();
     private final ObjectProperty<Node> visual = new SimpleObjectProperty<>() {
@@ -37,10 +43,13 @@ public class Point extends Parent {
     public Point(Node initial) {
         visual.set(initial);
 
+        setFocusTraversable(true);
+
         layoutXProperty().bind(x);
         layoutYProperty().bind(y);
 
         setOnMousePressed(event -> {
+            requestFocus();
             if (event.getButton() == MouseButton.PRIMARY && !event.isShiftDown()) {
                 dragData[0] = getX();
                 dragData[1] = getY();
@@ -115,6 +124,16 @@ public class Point extends Parent {
 
     public void setShape(Shape shape) {
         this.shape.set(shape);
+    }
+
+    @Override
+    public boolean isSelected() {
+        return selected.get();
+    }
+
+    @Override
+    public void setSelected(boolean selected) {
+        this.selected.set(selected);
     }
 
 }
