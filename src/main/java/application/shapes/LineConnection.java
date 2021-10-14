@@ -9,12 +9,12 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.Node;
 import javafx.scene.shape.Line;
 
-public class LineConnection extends Line implements PointConnection, Selectable {
+public class LineConnection extends Line implements PointConnection {
 
     private final BooleanProperty selected = new SimpleBooleanProperty() {
         @Override
         protected void invalidated() {
-            pseudoClassStateChanged(SELECTED, selected.get());
+            pseudoClassStateChanged(Selectable.SELECTED, selected.get());
         }
     };
 
@@ -73,12 +73,10 @@ public class LineConnection extends Line implements PointConnection, Selectable 
         this.connection.set(connection);
     }
 
-    @Override
     public void setSelected(boolean selected) {
         this.selected.set(selected);
     }
 
-    @Override
     public boolean isSelected() {
         return selected.get();
     }

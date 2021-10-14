@@ -1,5 +1,6 @@
 package application;
 
+import application.shapes.Point;
 import javafx.css.PseudoClass;
 
 public interface Selectable {
@@ -9,4 +10,5 @@ public interface Selectable {
     void setSelected(boolean selected);
     boolean isSelected();
 
+    Point[] getPoints();
 }

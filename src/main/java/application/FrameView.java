@@ -10,6 +10,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.image.Image;
@@ -17,17 +18,18 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import json.ConnectionJSON;
 import json.FrameJSON;
 import json.JSONSavable;
 import json.PointJSON;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 
 public class FrameView extends Pane implements JSONSavable<FrameJSON> {
+
+    private static final String STYLE_SHEET = Res.css("frame-view");
 
     private final ObjectProperty<Image> lastImage = new SimpleObjectProperty<>();
 
@@ -41,8 +43,13 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
     private double lastX;
     private double lastY;
 
+    private double startX;
+    private double startY;
+
     private final ObservableList<Selectable> selected = FXCollections.observableArrayList();
     private final AppView app;
+
+    private final Rectangle selectionRectangle = new Rectangle();
 
     public FrameView(AppView app) {
         this(app, new Shape());
@@ -50,7 +57,13 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
     public FrameView(AppView app, Shape shape) {
         this.shape = shape;
         this.app = app;
-        getChildren().add(shape);
+        getStylesheets().add(STYLE_SHEET);
+        getChildren().addAll(shape, selectionRectangle);
+
+        selectionRectangle.setMouseTransparent(true);
+        selectionRectangle.setFill(Color.rgb(23, 183, 246, 0.3));
+        selectionRectangle.setStroke(Color.rgb(19, 62, 100, 0.8));
+        selectionRectangle.getStrokeDashArray().setAll(10D);
 
         selected.addListener((ListChangeListener<? super Selectable>) change -> {
             while (change.next()) {
@@ -93,6 +106,8 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
 
         setFocusTraversable(true);
         setOnMousePressed(event -> {
+            startX = event.getX();
+            startY = event.getY();
             if (event.getButton() == MouseButton.MIDDLE) {
                 intersected = event.getPickResult().getIntersectedNode();
                 if (intersected != null && intersected.getParent() instanceof Point) {
@@ -109,7 +124,7 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
                 newPoint.setX(event.getX());
                 newPoint.setY(event.getY());
                 shape.getPoints().add(newPoint);
-            } else if (event.getButton() == MouseButton.SECONDARY || (event.getButton() == MouseButton.PRIMARY && event.isShiftDown())) {
+            } else if (event.getButton() == MouseButton.SECONDARY) {
                 dragging = true;
                 imaginaryPoint.setX(event.getX());
                 imaginaryPoint.setY(event.getY());
@@ -117,8 +132,6 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
                 if (intersected != null && intersected.getParent() instanceof Point) {
                     Point intersectedPoint = (Point) intersected.getParent();
                     dragConnection = Point.connect(intersectedPoint, imaginaryPoint, CurvedLineType.BASIC);
-                } else if (intersected instanceof CurveToConnection) {
-                    ((CurveToConnection) intersected).getConnection().remove();
                 }
             } else if (event.getButton() == MouseButton.PRIMARY) {
                 intersected = event.getPickResult().getIntersectedNode();
@@ -141,14 +154,30 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
                 if (intersected == null) {
                     double x = event.getX();
                     double y = event.getY();
-                    double deltaX = x - lastX;
-                    double deltaY = y - lastY;
-                    for (Point point : shape.getPoints()) {
-                        point.setX(point.getX() + deltaX);
-                        point.setY(point.getY() + deltaY);
+                    if (event.getButton() != MouseButton.PRIMARY) {
+                        double deltaX = x - lastX;
+                        double deltaY = y - lastY;
+                        for (Point point : shape.getPoints()) {
+                            point.setX(point.getX() + deltaX);
+                            point.setY(point.getY() + deltaY);
+                        }
+                        lastX = x;
+                        lastY = y;
+                    } else {
+                        selectionRectangle.setX(startX);
+                        selectionRectangle.setY(startY);
+                        double width = x - startX;
+                        double height = y - startY;
+                        selectionRectangle.setWidth(Math.abs(width));
+                        selectionRectangle.setHeight(Math.abs(height));
+                        if (width < 0) {
+                            selectionRectangle.setX(startX + width);
+                        }
+                        if (height < 0) {
+                            selectionRectangle.setY(startY + height);
+                        }
+                        selectInRectangle(selectionRectangle.getX(), selectionRectangle.getY(), selectionRectangle.getX() + selectionRectangle.getWidth(), selectionRectangle.getY() + selectionRectangle.getHeight());
                     }
-                    lastX = x;
-                    lastY = y;
                 } else if (intersected instanceof PointConnection) {
                     Point start = dragConnection.getStart();
                     Point end = dragConnection.getEnd();
@@ -156,10 +185,21 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
                     double y = event.getY();
                     double deltaX = x - lastX;
                     double deltaY = y - lastY;
-                    start.setX(start.getX() + deltaX);
-                    start.setY(start.getY() + deltaY);
-                    end.setX(end.getX() + deltaX);
-                    end.setY(end.getY() + deltaY);
+                    if (!selected.contains(intersected)) {
+                        start.setX(start.getX() + deltaX);
+                        start.setY(start.getY() + deltaY);
+                        end.setX(end.getX() + deltaX);
+                        end.setY(end.getY() + deltaY);
+                    } else {
+                        Set<Point> toBeMoved = new HashSet<>();
+                        for (Selectable selectable : selected) {
+                            toBeMoved.addAll(Arrays.asList(selectable.getPoints()));
+                        }
+                        for (Point point : toBeMoved) {
+                            point.setX(point.getX() + deltaX);
+                            point.setY(point.getY() + deltaY);
+                        }
+                    }
                     lastX = x;
                     lastY = y;
                 } else {
@@ -167,7 +207,7 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
                     imaginaryPoint.setY(event.getY());
 
                     Node intersectedTemp = event.getPickResult().getIntersectedNode();
-                    if (intersectedTemp != null && intersectedTemp.getParent() instanceof Point && intersectedTemp != intersected) {
+                    if (intersectedTemp != null && intersectedTemp.getParent() instanceof Point && intersectedTemp != intersected && dragConnection != null) {
                         if (dragConnection.getEnd() != intersectedTemp.getParent()) {
                             dragConnection.remove();
                             dragConnection = Point.connect(dragConnection.getStart(), (Point) intersectedTemp.getParent(), CurvedLineType.BASIC);
@@ -180,10 +220,23 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
             }
         });
         setOnMouseReleased(event -> {
-            if (!dragging) {
+            selectionRectangle.setWidth(0);
+            selectionRectangle.setHeight(0);
+            if (startX == event.getX() && startY == event.getY()) {
                 Node node = event.getPickResult().getIntersectedNode();
-                if (node instanceof Selectable) {
-                    selected.setAll((Selectable) node);
+                Selectable found = null;
+                while (node.getParent() != null && found == null && node != getParent()) {
+                    if (node instanceof Selectable) found = (Selectable) node;
+                    node = node.getParent();
+                }
+                if (found != null) {
+                    if (event.isShiftDown()) {
+                        selected.add(found);
+                    } else {
+                        selected.setAll(found);
+                    }
+                } else if (!event.isShiftDown()) {
+                    selected.clear();
                 }
             }
             dragging = false;
@@ -193,6 +246,37 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
             dragConnection = null;
             takeSnapshot();
         });
+    }
+
+    private void selectInRectangle(double x1, double y1, double x2, double y2) {
+        for (Node node : shape.getChildrenUnmodifiable()) {
+            Selectable found = null;
+            Node search = node;
+            while (search.getParent() != null && search != this) {
+                if (search instanceof Selectable) {
+                    found = (Selectable) node;
+                    break;
+                }
+                search = search.getParent();
+            }
+            if (found != null) {
+                double x;
+                double y;
+                if (found instanceof CurveToConnection) {
+                    CurveToConnection curvedConnection = (CurveToConnection) found;
+                    x = (curvedConnection.getStartX() + curvedConnection.getEndX()) / 2;
+                    y = (curvedConnection.getStartY() + curvedConnection.getEndY()) / 2;
+                } else {
+                    x = node.getLayoutX();
+                    y = node.getLayoutY();
+                }
+                if (x > x1 && x < x2 && y > y1 && y < y2) {
+                    if (!selected.contains(found)) selected.add(found);
+                } else {
+                    selected.remove(found);
+                }
+            }
+        }
     }
 
     public void takeSnapshot() {

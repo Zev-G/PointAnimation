@@ -132,6 +132,11 @@ public class Point extends Parent implements Selectable {
     }
 
     @Override
+    public Point[] getPoints() {
+        return new Point[]{ this };
+    }
+
+    @Override
     public void setSelected(boolean selected) {
         this.selected.set(selected);
     }

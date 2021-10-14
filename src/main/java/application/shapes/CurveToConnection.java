@@ -4,6 +4,10 @@ import application.PivotApplication;
 import application.Selectable;
 import javafx.beans.property.*;
 import javafx.scene.Node;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.effect.Effect;
+import javafx.scene.effect.InnerShadow;
+import javafx.scene.effect.Shadow;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.QuadCurve;
 import javafx.scene.shape.StrokeLineCap;
@@ -21,16 +25,24 @@ public class CurveToConnection extends QuadCurve implements PointConnection, Sel
     private final BooleanProperty selected = new SimpleBooleanProperty() {
         @Override
         protected void invalidated() {
-            pseudoClassStateChanged(SELECTED, selected.get());
+            setEffect(get() ? selectedEffect : null);
         }
     };
 
     private final Connection connection;
+    private final Effect selectedEffect;
 
     public CurveToConnection(Connection connection) {
         this.connection = connection;
         this.controlPoint = new ControlPoint(connection);
 
+        DropShadow effect = new DropShadow();
+        effect.setRadius(2);
+        effect.setSpread(1);
+        effect.setColor(Color.rgb(255,0,0,1));
+        selectedEffect = effect;
+
+        setPickOnBounds(false);
         setFill(Color.TRANSPARENT);
         setStroke(Color.BLACK);
         setStrokeWidth(PivotApplication.DEFAULT_SIZE * 0.75);
@@ -69,6 +81,11 @@ public class CurveToConnection extends QuadCurve implements PointConnection, Sel
     @Override
     public boolean isSelected() {
         return selected.get();
+    }
+
+    @Override
+    public Point[] getPoints() {
+        return new Point[]{ connection.getStart(), connection.getEnd() };
     }
 
     @Override

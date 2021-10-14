@@ -1,0 +1,4 @@
+*:selected, *:selected > * {
+    -fx-stroke: red;
+    -fx-stroke-width: 3;
+}
