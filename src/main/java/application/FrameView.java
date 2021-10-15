@@ -101,6 +101,11 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
                 if (c.wasAdded()) {
                     c.getAddedSubList().forEach(visibilityHandler);
                 }
+                if (c.wasRemoved()) {
+                    for (Node node : c.getRemoved()) {
+                        if (node instanceof Selectable) selected.remove(node);
+                    }
+                }
             }
         });
 
@@ -124,7 +129,7 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
                 newPoint.setX(event.getX());
                 newPoint.setY(event.getY());
                 shape.getPoints().add(newPoint);
-            } else if (event.getButton() == MouseButton.SECONDARY) {
+            } else if (event.getButton() == MouseButton.SECONDARY || (event.getButton() == MouseButton.PRIMARY && event.isShiftDown())) {
                 dragging = true;
                 imaginaryPoint.setX(event.getX());
                 imaginaryPoint.setY(event.getY());
@@ -163,20 +168,35 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
                         }
                         lastX = x;
                         lastY = y;
-                    } else {
-                        selectionRectangle.setX(startX);
-                        selectionRectangle.setY(startY);
-                        double width = x - startX;
-                        double height = y - startY;
-                        selectionRectangle.setWidth(Math.abs(width));
-                        selectionRectangle.setHeight(Math.abs(height));
-                        if (width < 0) {
-                            selectionRectangle.setX(startX + width);
+                    } else if (!event.isShiftDown()) {
+                        if (selected.isEmpty() || selectionRectangle.getWidth() != 0 || selectionRectangle.getHeight() != 0) {
+                            selectionRectangle.setX(startX);
+                            selectionRectangle.setY(startY);
+                            double width = x - startX;
+                            double height = y - startY;
+                            selectionRectangle.setWidth(Math.abs(width));
+                            selectionRectangle.setHeight(Math.abs(height));
+                            if (width < 0) {
+                                selectionRectangle.setX(startX + width);
+                            }
+                            if (height < 0) {
+                                selectionRectangle.setY(startY + height);
+                            }
+                            selectInRectangle(selectionRectangle.getX(), selectionRectangle.getY(), selectionRectangle.getX() + selectionRectangle.getWidth(), selectionRectangle.getY() + selectionRectangle.getHeight());
+                        } else {
+                            double deltaX = x - lastX;
+                            double deltaY = y - lastY;
+                            Set<Point> toBeMoved = new HashSet<>();
+                            for (Selectable selectable : selected) {
+                                toBeMoved.addAll(Arrays.asList(selectable.getPoints()));
+                            }
+                            for (Point point : toBeMoved) {
+                                point.setX(point.getX() + deltaX);
+                                point.setY(point.getY() + deltaY);
+                            }
+                            lastX = x;
+                            lastY = y;
                         }
-                        if (height < 0) {
-                            selectionRectangle.setY(startY + height);
-                        }
-                        selectInRectangle(selectionRectangle.getX(), selectionRectangle.getY(), selectionRectangle.getX() + selectionRectangle.getWidth(), selectionRectangle.getY() + selectionRectangle.getHeight());
                     }
                 } else if (intersected instanceof PointConnection) {
                     Point start = dragConnection.getStart();
@@ -222,7 +242,7 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
         setOnMouseReleased(event -> {
             selectionRectangle.setWidth(0);
             selectionRectangle.setHeight(0);
-            if (startX == event.getX() && startY == event.getY()) {
+            if (startX == event.getX() && startY == event.getY() && event.getClickCount() == 1) {
                 Node node = event.getPickResult().getIntersectedNode();
                 Selectable found = null;
                 while (node.getParent() != null && found == null && node != getParent()) {
@@ -231,7 +251,11 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
                 }
                 if (found != null) {
                     if (event.isShiftDown()) {
-                        selected.add(found);
+                        if (selected.contains(found)) {
+                            selected.remove(found);
+                        } else {
+                            selected.add(found);
+                        }
                     } else {
                         selected.setAll(found);
                     }
@@ -254,7 +278,7 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
             Node search = node;
             while (search.getParent() != null && search != this) {
                 if (search instanceof Selectable) {
-                    found = (Selectable) node;
+                    found = (Selectable) search;
                     break;
                 }
                 search = search.getParent();
@@ -277,6 +301,27 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
                 }
             }
         }
+    }
+
+    public void selectAll() {
+        for (Node child : shape.getChildrenUnmodifiable()) {
+            if (child instanceof Selectable && !selected.contains(child)) {
+                selected.add((Selectable) child);
+            }
+        }
+    }
+    public void clearSelection() {
+        selected.clear();
+    }
+    public void deleteSelectedItems() {
+        for (Selectable selected : new ArrayList<>(this.selected)) {
+            if (selected instanceof CurveToConnection) {
+                ((CurveToConnection) selected).getConnection().remove();
+            } else if (selected instanceof Point) {
+                shape.getPoints().remove(selected);
+            }
+        }
+        takeSnapshot();
     }
 
     public void takeSnapshot() {
@@ -344,6 +389,10 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
         frameJSON.connections = connectionJSONS;
         frameJSON.points = pointJSONS;
         return frameJSON;
+    }
+
+    public ObservableList<Selectable> getSelected() {
+        return selected;
     }
 
 }

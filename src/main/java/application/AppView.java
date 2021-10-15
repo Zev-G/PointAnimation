@@ -58,6 +58,17 @@ public class AppView extends VBox implements JSONSavable<AnimationJSON> {
                 showingAllProperty().set((showingAllProperty().get() + 1) % 3);
                 frames.forEach(FrameView::takeSnapshot);
             }
+            if (getCurrentFrame() != null) {
+                if (event.getCode().equals(KeyCode.ESCAPE)) {
+                    getCurrentFrame().getSelected().clear();
+                }
+                if (event.getCode().equals(KeyCode.A) && event.isControlDown()) {
+                    getCurrentFrame().selectAll();
+                }
+                if (event.getCode().equals(KeyCode.BACK_SPACE) || event.getCode().equals(KeyCode.DELETE)) {
+                    getCurrentFrame().deleteSelectedItems();
+                }
+            }
         });
 
         VBox.setVgrow(frameEditor, Priority.ALWAYS);
