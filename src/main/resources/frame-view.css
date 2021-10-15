@@ -2,3 +2,12 @@
     -fx-stroke: red;
     -fx-stroke-width: 3;
 }
+
+.label-element {
+    -fx-border-color: transparent;
+    -fx-border-width: 3;
+}
+.label-element:selected {
+    -fx-border-color: red;
+    -fx-border-width: 3;
+}

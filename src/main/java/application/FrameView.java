@@ -108,6 +108,15 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
                 }
             }
         });
+        getChildren().addListener((ListChangeListener<Node>) c -> {
+            while (c.next()) {
+                if (c.wasRemoved()) {
+                    for (Node node : c.getRemoved()) {
+                        if (node instanceof Selectable) selected.remove(node);
+                    }
+                }
+            }
+        });
 
         setFocusTraversable(true);
         setOnMousePressed(event -> {

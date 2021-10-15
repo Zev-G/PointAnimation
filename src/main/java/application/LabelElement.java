@@ -3,10 +3,13 @@ package application;
 import application.shapes.Point;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Pane;
 
-public class LabelElement extends Label implements Selectable {
+public class LabelElement extends BorderPane implements Selectable {
 
     private final BooleanProperty selected = new SimpleBooleanProperty() {
         @Override
@@ -21,8 +24,13 @@ public class LabelElement extends Label implements Selectable {
     private final double[] dragData = new double[4];
     private boolean dragging = false;
 
+    private final Label label = new Label("Filler Text");
+
     public LabelElement() {
-        super("Filler Text");
+        setCenter(label);
+        label.setMouseTransparent(true);
+        setPickOnBounds(true);
+        getStyleClass().add("label-element");
 
         layoutXProperty().bind(locationController.xProperty());
         layoutYProperty().bind(locationController.yProperty());
@@ -53,7 +61,7 @@ public class LabelElement extends Label implements Selectable {
 
     @Override
     public void remove(FrameView view) {
-        view.getChildren().remove(view);
+        view.getChildren().remove(this);
     }
 
     public boolean isSelected() {

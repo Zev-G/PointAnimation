@@ -1,6 +1,5 @@
 package application;
 
-import com.me.tmw.debug.devtools.DevScene;
 import javafx.application.Application;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
@@ -16,7 +15,7 @@ public class PivotApplication extends Application {
     @Override
     public void start(Stage primaryStage) {
         AnchorPane root = new AnchorPane();
-        Scene scene = new DevScene(root);
+        Scene scene = new Scene(root);
         AppView app = new AppView(scene);
         root.getChildren().add(app);
         Layout.anchor(app);
