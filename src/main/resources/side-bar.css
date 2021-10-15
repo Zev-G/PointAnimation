@@ -1,4 +1,32 @@
 .side-bar {
     -fx-border-color: #2b2b2b;
     -fx-border-width: 0 2 0 0;
+    -fx-padding: 10;
+}
+
+.selection-buttons {
+    -fx-spacing: 5;
+    -fx-padding: 0 20;
+    -fx-alignment: center;
+}
+
+.selection-buttons > .button {
+    /*-fx-border-color: #353535;*/
+    -fx-background-color: white;
+    -fx-border-radius: 3px, 3px, 2px, 1px;
+    -fx-border-color: transparent;
+    -fx-background-insets: 0 0 -1 0, 0, 1, 2;
+    -fx-background-radius: 3px, 3px, 2px, 1px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 5, 0.2, 0.0, 0.0);
+    -fx-cursor: hand;
+}
+.selection-buttons > .button:disabled {
+    -fx-effect: dropshadow(gaussian, transparent, 5, 0.2, 0.0, 0.0);
+    -fx-border-color: gray;
+}
+.selection-buttons > .button:selected {
+    -fx-border-color: #353535;
+}
+.selection-buttons > .button:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 5, 0.2, 0.0, 0.0);
 }

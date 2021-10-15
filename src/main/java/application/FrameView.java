@@ -347,6 +347,10 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
         return view;
     }
 
+    public Shape getFrameShape() {
+        return shape;
+    }
+
     @Override
     public void apply(FrameJSON json) {
         shape.getPoints().clear();

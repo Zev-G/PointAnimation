@@ -11,13 +11,14 @@ public class FrameEditor extends HBox {
 
     private final ObjectProperty<FrameView> currentFrame;
 
-    private final SideBar sideBar = new SideBar(this);
+    private final SideBar sideBar;
     private final AnchorPane frameHolder = new AnchorPane();
 
     private final AppView app;
 
     public FrameEditor(AppView app) {
         this.app = app;
+        sideBar = new SideBar(this);
         getChildren().addAll(sideBar, frameHolder);
         getStylesheets().add(STYLE_SHEET);
         getStyleClass().add("frame-editor");
@@ -34,8 +35,6 @@ public class FrameEditor extends HBox {
 
         HBox.setHgrow(frameHolder, Priority.ALWAYS);
     }
-
-
 
     public AppView getApp() {
         return app;
