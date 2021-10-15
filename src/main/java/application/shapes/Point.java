@@ -1,5 +1,6 @@
 package application.shapes;
 
+import application.FrameView;
 import application.PivotApplication;
 import application.Selectable;
 import javafx.beans.property.*;
@@ -134,6 +135,11 @@ public class Point extends Parent implements Selectable {
     @Override
     public Point[] getPoints() {
         return new Point[]{ this };
+    }
+
+    @Override
+    public void remove(FrameView view) {
+        view.getFrameShape().getPoints().remove(this);
     }
 
     @Override

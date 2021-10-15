@@ -73,7 +73,16 @@ public class SideBar extends VBox {
                 app.getCurrentFrame().getFrameShape().getPoints().add(newPoint);
             }
         });
-        add.getItems().add(point);
+        MenuItem label = new MenuItem("Label");
+        label.setOnAction(event -> {
+            if (app.getCurrentFrame() != null) {
+                LabelElement newElement = new LabelElement();
+                newElement.getLocationController().setX(25);
+                newElement.getLocationController().setY(25);
+                app.getCurrentFrame().getChildren().add(newElement);
+            }
+        });
+        add.getItems().addAll(point, label);
 
         clear.disableProperty().bind(selection);
         delete.disableProperty().bind(selection);

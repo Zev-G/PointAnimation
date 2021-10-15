@@ -273,7 +273,9 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
     }
 
     private void selectInRectangle(double x1, double y1, double x2, double y2) {
-        for (Node node : shape.getChildrenUnmodifiable()) {
+        List<Node> nodes = new ArrayList<>(shape.getChildrenUnmodifiable());
+        nodes.addAll(getChildren());
+        for (Node node : nodes) {
             Selectable found = null;
             Node search = node;
             while (search.getParent() != null && search != this) {
@@ -315,11 +317,7 @@ public class FrameView extends Pane implements JSONSavable<FrameJSON> {
     }
     public void deleteSelectedItems() {
         for (Selectable selected : new ArrayList<>(this.selected)) {
-            if (selected instanceof CurveToConnection) {
-                ((CurveToConnection) selected).getConnection().remove();
-            } else if (selected instanceof Point) {
-                shape.getPoints().remove(selected);
-            }
+            selected.remove(this);
         }
         takeSnapshot();
     }

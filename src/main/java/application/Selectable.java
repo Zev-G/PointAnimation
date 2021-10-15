@@ -11,4 +11,6 @@ public interface Selectable {
     boolean isSelected();
 
     Point[] getPoints();
+    void remove(FrameView view);
+
 }

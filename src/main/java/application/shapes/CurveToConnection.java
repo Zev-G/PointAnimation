@@ -1,5 +1,6 @@
 package application.shapes;
 
+import application.FrameView;
 import application.PivotApplication;
 import application.Selectable;
 import javafx.beans.property.*;
@@ -86,6 +87,11 @@ public class CurveToConnection extends QuadCurve implements PointConnection, Sel
     @Override
     public Point[] getPoints() {
         return new Point[]{ connection.getStart(), connection.getEnd() };
+    }
+
+    @Override
+    public void remove(FrameView view) {
+        getConnection().remove();
     }
 
     @Override
