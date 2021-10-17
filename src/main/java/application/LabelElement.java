@@ -59,6 +59,18 @@ public class LabelElement extends BorderPane implements Selectable {
         return new Point[]{ locationController };
     }
 
+    private EditableProperty<?>[] editableProperties = null;
+    @Override
+    public EditableProperty<?>[] getEditableProperties() {
+        if (editableProperties == null) {
+            EditableStringProperty text = new EditableStringProperty("Text", label.textProperty());
+            editableProperties = new EditableProperty[] {
+                    text
+            };
+        }
+        return editableProperties;
+    }
+
     @Override
     public void remove(FrameView view) {
         view.getChildren().remove(this);

@@ -2,6 +2,8 @@
     -fx-border-color: #2b2b2b;
     -fx-border-width: 0 2 0 0;
     -fx-padding: 10;
+    -fx-spacing: 15;
+    -fx-max-width: 250;
 }
 
 .selection-buttons {
@@ -29,4 +31,66 @@
 }
 .selection-buttons > .button:hover {
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 5, 0.2, 0.0, 0.0);
+}
+
+.list-cell {
+    -fx-background-color: transparent;
+}
+.real-tree-cell:hover {
+    -fx-background-color: derive(-fx-accent, 30%);
+}
+
+.real-tree-cell:selected {
+    -fx-background-color: derive(-fx-accent, 50%);
+    -fx-text-fill: -fx-dark-text-color;
+}
+
+.editable-property-view > .title {
+    -fx-background-color: transparent;
+}
+
+.text-area .content, .text-area .viewport {
+    -fx-background-color: white;
+}
+.text-area {
+    -fx-background-color: transparent;
+    -fx-pref-height: 43;
+}
+
+.accordion > .titled-pane {
+    -fx-padding: 0 0 10 0;
+    -fx-background-insets: 0 0 10 0;
+}
+
+.selectable-editor > .title {
+    -fx-border-radius: 10 10 0 0;
+    -fx-border-color: gray gray lightgray gray;
+    -fx-padding: 5;
+    -fx-alignment: center;
+    -fx-background-color: transparent;
+}
+
+.selectable-editor > .content {
+    -fx-border-radius: 0 0 10 10;
+    -fx-background-color: transparent;
+    -fx-border-color: gray;
+    -fx-padding: 0 0 10 0;
+}
+
+.selectable-editor > .content > * {
+    -fx-padding: 0;
+}
+
+.selectable-editor {
+    -fx-background-color: white;
+    -fx-background-radius: 15;
+}
+
+.selectable-editor:collapsed > .title {
+    -fx-border-radius: 10;
+    -fx-border-color: gray;
+}
+
+.scroll-pane {
+    -fx-background-color: transparent;
 }

@@ -1,21 +1,25 @@
 package application;
 
 import application.shapes.Point;
+import com.me.tmw.debug.devtools.inspectors.InspectorBase;
+import com.me.tmw.nodes.util.Layout;
+import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
-import javafx.beans.property.BooleanProperty;
 import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonBar;
-import javafx.scene.control.MenuButton;
-import javafx.scene.control.MenuItem;
-import javafx.scene.layout.BorderPane;
+import javafx.geometry.Bounds;
+import javafx.scene.Node;
+import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.util.Callback;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class SideBar extends VBox {
 
@@ -31,35 +35,149 @@ public class SideBar extends VBox {
 
     private ListChangeListener<Selectable> currentFrameSelectedListener;
 
+    private final ObservableList<Selectable> selected = FXCollections.observableArrayList();
+    private final ListView<Selectable> selectedView = new ListView<>();
+    private final Accordion editSelectables = new Accordion();
+    private final ScrollPane editorScrollPane = new ScrollPane(editSelectables);
+    private final Map<Selectable, SelectableEditor> selectableEditorMap = new HashMap<>();
+
+    private final InspectorBase inspector = new InspectorBase() {
+
+        private final Label type = new Label();
+
+        {
+            usingCSS = false;
+            usingOverlay = true;
+            getPopupContent().getChildren().add(type);
+        }
+
+        @Override
+        protected void populatePopup(Node node) {
+            type.setText(node.getClass().getSimpleName());
+            overlayPopupContent.minWidthProperty().bind(Bindings.createDoubleBinding(() -> node.getBoundsInParent().getWidth(), node.boundsInParentProperty()));
+            overlayPopupContent.minHeightProperty().bind(Bindings.createDoubleBinding(() -> node.getBoundsInParent().getHeight(), node.boundsInParentProperty()));
+        }
+
+        @Override
+        protected void layoutPopup(Node node) {
+            Bounds boundsOnScreen = Layout.nodeOnScreen(node);
+            if (boundsOnScreen != null) {
+                getPopup().setX(boundsOnScreen.getMinX());
+                getPopup().setY(boundsOnScreen.getMaxY());
+
+                getOverlayPopup().setX(boundsOnScreen.getMinX());
+                getOverlayPopup().setY(boundsOnScreen.getMinY());
+            }
+        }
+    };
+    private final Callback<ListView<Selectable>, ListCell<Selectable>> selectedCellFactory = listView -> new ListCell<>() {
+        {
+            setOnMouseEntered(event -> {
+                Selectable item = getItem();
+                if (item instanceof Node) {
+                    inspector.setExamined((Node) item);
+                }
+            });
+            setOnMouseExited(event -> inspector.setExamined(null));
+        }
+
+        @Override
+        protected void updateItem(Selectable item, boolean empty) {
+            super.updateItem(item, empty);
+            if (item != null) {
+                setText(item.getClass().getSimpleName());
+                if (!getStyleClass().contains("real-tree-cell")) {
+                    getStyleClass().add("real-tree-cell");
+                }
+            } else {
+                setGraphic(null);
+                setText(null);
+                getStyleClass().remove("real-tree-cell");
+            }
+        }
+    };
+    private final ChangeListener<FrameView> currentFrameChanged = (observable, oldValue, newValue) -> {
+        if (currentFrameSelectedListener != null) {
+            oldValue.getSelected().removeListener(currentFrameSelectedListener);
+        }
+        if (newValue != null) {
+            selected.setAll(newValue.getSelected());
+            selectedView.getItems().setAll(newValue.getSelected());
+            currentFrameSelectedListener = change -> {
+                while (change.next()) {
+                    if (change.wasAdded()) {
+                        selected.addAll(change.getAddedSubList());
+                        selectedView.getItems().addAll(change.getAddedSubList());
+                    }
+                    if (change.wasRemoved()) {
+                        selected.removeAll(change.getRemoved());
+                        selectedView.getItems().removeAll(change.getRemoved());
+                    }
+                }
+            };
+            newValue.getSelected().addListener(currentFrameSelectedListener);
+        } else {
+            selected.clear();
+            selectedView.getItems().clear();
+            currentFrameSelectedListener = null;
+        }
+    };
+
     public SideBar(FrameEditor editor) {
         this.editor = editor;
         this.app = editor.getApp();
+        getStylesheets().add(STYLE_SHEET);
+        getStyleClass().add("side-bar");
+        selectionButtons.getStyleClass().add("selection-buttons");
+        add.getStyleClass().add("button");
 
-        ObservableList<Selectable> selected = FXCollections.observableArrayList();
-        BooleanBinding selection = Bindings.isEmpty(selected);
 
-        ChangeListener<FrameView> currentFrameChanged = (observable, oldValue, newValue) -> {
-            if (currentFrameSelectedListener != null) {
-                oldValue.getSelected().removeListener(currentFrameSelectedListener);
-            }
-            if (newValue != null) {
-                selected.setAll(newValue.getSelected());
-                currentFrameSelectedListener = change -> {
-                    while (change.next()) {
-                        if (change.wasAdded()) {
-                            selected.addAll(change.getAddedSubList());
+        selectedView.setMaxHeight(250);
+        selectedView.prefHeightProperty().bind(Bindings.size(selected).multiply(23).add(23));
+        selectedView.minHeightProperty().bind(Bindings.min(250, selectedView.prefHeightProperty()));
+        VBox.setVgrow(editorScrollPane, Priority.SOMETIMES);
+        editorScrollPane.setFitToWidth(true);
+
+        selected.addListener((ListChangeListener<? super Selectable>) c -> {
+            while (c.next()) {
+                if (c.wasAdded()) {
+                    for (Selectable added : c.getAddedSubList()) {
+                        if (!selectableEditorMap.containsKey(added)) {
+                            selectableEditorMap.put(added, new SelectableEditor(added));
                         }
-                        if (change.wasRemoved()) {
-                            selected.removeAll(change.getRemoved());
+                        if (!editSelectables.getPanes().contains(selectableEditorMap.get(added))) {
+                            editSelectables.getPanes().add(selectableEditorMap.get(added));
                         }
                     }
-                };
-                newValue.getSelected().addListener(currentFrameSelectedListener);
-            } else {
-                selected.clear();
-                currentFrameSelectedListener = null;
+                }
+                if (c.wasRemoved()) {
+                    for (Selectable removed : c.getRemoved()) {
+                        if (selectableEditorMap.containsKey(removed)) {
+                            editSelectables.getPanes().remove(selectableEditorMap.get(removed));
+                        }
+                    }
+                }
             }
-        };
+        });
+        selectedView.getSelectionModel().selectedItemProperty().addListener(observable -> {
+            Selectable selected = selectedView.getSelectionModel().getSelectedItem();
+            TitledPane expanded = editSelectables.getExpandedPane();
+            if (selected == null) {
+                editSelectables.setExpandedPane(null);
+            } else if (expanded == null || (expanded instanceof SelectableEditor && ((SelectableEditor) expanded).selectable != selected)) {
+                editSelectables.setExpandedPane(selectableEditorMap.getOrDefault(selected, null));
+            }
+        });
+        selectedView.getItems().addListener((InvalidationListener) observable -> {
+            if (selectedView.getItems().size() == 1) {
+                selectedView.getSelectionModel().select(selectedView.getItems().get(0));
+            }
+        });
+
+        selectedView.setCellFactory(selectedCellFactory);
+
+        BooleanBinding selection = Bindings.isEmpty(selected);
+
         currentFrameChanged.changed(app.currentFrameProperty(), null, app.getCurrentFrame());
         app.currentFrameProperty().addListener(currentFrameChanged);
 
@@ -85,7 +203,11 @@ public class SideBar extends VBox {
 
         clear.disableProperty().bind(selection);
         delete.disableProperty().bind(selection);
-        getChildren().addAll(selectionButtons);
+
+        TitledPane selectedTitledPane = new TitledPane("Selected", selectedView);
+        selectedTitledPane.getStyleClass().add("selectable-editor");
+
+        getChildren().addAll(selectionButtons, selectedTitledPane, editorScrollPane);
 
         clear.setOnAction(event -> {
             if (app.getCurrentFrame() != null) {
@@ -97,16 +219,64 @@ public class SideBar extends VBox {
                 app.getCurrentFrame().deleteSelectedItems();
             }
         });
-
-        getStylesheets().add(STYLE_SHEET);
-        getStyleClass().add("side-bar");
-        selectionButtons.getStyleClass().add("selection-buttons");
-        add.getStyleClass().add("button");
-        prefHeightProperty().bind(editor.heightProperty());
     }
 
     public FrameEditor getEditor() {
         return editor;
+    }
+
+    private class SelectableEditor extends TitledPane {
+
+        private final Selectable selectable;
+        private boolean loaded = false;
+
+        private final VBox content = new VBox();
+
+        public SelectableEditor(Selectable selectable) {
+            this.selectable = selectable;
+            getStyleClass().add("selectable-editor");
+            setText(selectable.getClass().getSimpleName());
+            setContent(content);
+            setExpanded(false);
+            setAnimated(false);
+
+            expandedProperty().addListener(observable -> {
+                boolean expanded = isExpanded();
+                if (expanded && selectedView.getSelectionModel().getSelectedItem() != selectable) {
+                    selectedView.getSelectionModel().select(selectable);
+                }
+            });
+
+            expandedProperty().addListener(observable -> {
+                if (!loaded && isExpanded()) {
+                    load();
+                }
+            });
+        }
+
+        private void load() {
+            this.loaded = true;
+            for (EditableProperty<?> property : this.selectable.getEditableProperties()) {
+                content.getChildren().add(new EditablePropertyView<>(property));
+            }
+        }
+
+        public Selectable getSelectable() {
+            return selectable;
+        }
+
+    }
+
+    private static class EditablePropertyView<T> extends TitledPane {
+
+        private final EditableProperty<T> editableProperty;
+
+        public EditablePropertyView(EditableProperty<T> editableProperty) {
+            super(editableProperty.getName(), editableProperty.getEditor());
+            getStyleClass().add("editable-property-view");
+            this.editableProperty = editableProperty;
+        }
+
     }
 
 }

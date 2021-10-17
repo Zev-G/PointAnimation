@@ -13,4 +13,8 @@ public interface Selectable {
     Point[] getPoints();
     void remove(FrameView view);
 
+    default EditableProperty<?>[] getEditableProperties() {
+        return new EditableProperty[0];
+    }
+
 }
