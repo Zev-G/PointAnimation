@@ -3,6 +3,7 @@ package application.shapes;
 import application.FrameView;
 import application.PivotApplication;
 import application.Selectable;
+import com.me.tmw.debug.util.Debugger;
 import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -61,8 +62,34 @@ public class Point extends Parent implements Selectable {
         });
         setOnMouseDragged(event -> {
             if (dragging && draggable.get()) {
-                setX(event.getScreenX() - dragData[2] + dragData[0]);
-                setY(event.getScreenY() - dragData[3] + dragData[1]);
+                double p2x = event.getScreenX() - dragData[2] + dragData[0]; // pos 2 x
+                double p2y = event.getScreenY() - dragData[3] + dragData[1]; // pos 2 y
+                if (event.isControlDown() && connectionsTo.size() + connectionsFrom.size() == 1) {
+                    Point anchor = connectionsTo.isEmpty() ? connectionsFrom.get(0).getStart() : connectionsTo.get(0).getEnd();
+
+                    double p1x = getX(); // pos 1 x
+                    double p1y = getY(); // pos 1 y
+
+                    double ax = anchor.getX(); // anchor y
+                    double ay = anchor.getY(); // anchor x
+                    double ogLength = p1x - ax;
+                    double ogHeight = p1y - ay;
+                    double mouseLength = p2x - ax;
+                    double mouseHeight = p2y - ay;
+
+                    double hypotenuse = Math.sqrt(Math.pow(ogLength, 2) + Math.pow(ogHeight, 2));
+                    if (mouseLength < 0) hypotenuse *= -1;
+                    double theta = Math.atan((mouseHeight) / (mouseLength));
+
+                    double length = Math.cos(theta) * hypotenuse;
+                    double height = Math.sin(theta) * hypotenuse;
+
+                    setX(ax + length);
+                    setY(ay + height);
+                } else {
+                    setX(p2x);
+                    setY(p2y);
+                }
             }
         });
         setOnMouseReleased(event -> dragging = false);
