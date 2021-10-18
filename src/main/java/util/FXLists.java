@@ -29,8 +29,7 @@ public final class FXLists {
                 } else {
                     result.removeAll(convert(c.getRemoved(), convert));
                     result.addAll(convert(c.getAddedSubList(), convert));
-                }
-            }
+                } }
         });
         return result;
     }

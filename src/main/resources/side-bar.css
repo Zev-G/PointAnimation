@@ -4,6 +4,7 @@
     -fx-padding: 10;
     -fx-spacing: 15;
     -fx-max-width: 250;
+    -fx-min-width: 250;
 }
 
 .selection-buttons {
